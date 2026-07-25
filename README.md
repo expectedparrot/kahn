@@ -1,6 +1,10 @@
 # kahn — two-axis strategic scenario-planning CLI
 <!-- id: kahn/kahn -->
 
+<p align="center">
+  <img src="docs/assets/kahn-package.png" width="760" alt="Kahn scenario-planning parrot reviewing branching future paths">
+</p>
+
 kahn structures strategic uncertainty work into environmental forces, critical uncertainties, a two-axis scenario matrix, strategic options, and a final scenario report. The agent uses it to facilitate scenario planning with the user, separating known forces from uncertain drivers, selecting the two most consequential uncertainties, generating scenario narratives, and evaluating options across futures.
 
 ## Installation
