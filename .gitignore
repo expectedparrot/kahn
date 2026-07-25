@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+*.egg
+.pytest_cache/
+.ruff_cache/
+.venv/
+
+# Kahn project data
+.kahn/
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store

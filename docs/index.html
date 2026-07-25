@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A practical guide to strategic scenario planning with Kahn.">
+  <title>Expected Parrot | Strategic Scenario Planning with Kahn</title>
+  <style>
+    :root{--green:#428a5f;--dark:#214d35;--light:#5ba97a;--ink:#1b1d1c;--muted:#66706a;--paper:#f5f7f6;--panel:#fff;--rule:#dce3de;--soft:#edf6f0;--code:#18231d;--sidebar:290px;--measure:790px;--serif:Georgia,"Times New Roman",serif;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;--mono:"SFMono-Regular",Consolas,monospace}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:var(--ink);background:var(--paper);font:16px/1.7 var(--sans)}
+    #progress{position:fixed;inset:0 auto auto 0;z-index:20;width:0;height:4px;background:var(--green)}
+    nav{position:fixed;inset:0 auto 0 0;width:var(--sidebar);overflow:auto;padding:22px;color:#eef7f1;background:var(--dark);font-size:14px}
+    .brand{display:block;margin-bottom:20px;padding:12px;color:var(--ink);background:#fff;border-radius:9px;text-decoration:none}.brand span{display:block;font-weight:750;line-height:1.2}.brand small{display:block;margin-top:4px;color:var(--muted);font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+    nav h2{margin:0 8px 24px;color:#fff;font:600 20px/1.25 var(--serif);border:0;padding:0}nav .part{margin:20px 8px 5px;color:#a7d7b9;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}nav>a:not(.brand){display:block;padding:6px 8px;color:#d5e9dc;text-decoration:none;border-radius:6px}nav>a:not(.brand):hover{color:#fff;background:#2d6244}
+    main{margin-left:var(--sidebar)}article{max-width:916px;margin:auto;padding:48px 48px 110px;background:var(--panel);box-shadow:0 0 0 1px rgba(0,0,0,.03)}header{padding:62px 0 46px;border-bottom:3px solid var(--green)}
+    .eyebrow{color:var(--green);font-size:12px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.3}h1{max-width:780px;margin:14px 0 20px;font-size:clamp(42px,6vw,62px);letter-spacing:-.025em}h2{margin:78px 0 22px;padding:12px 0 8px;color:var(--green);font-size:32px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}h3{margin:40px 0 12px;font-size:23px}.dek{max-width:720px;color:var(--muted);font-size:21px;line-height:1.5}.meta{display:flex;flex-wrap:wrap;gap:10px 24px;margin-top:28px;color:var(--muted);font-size:13px}
+    p,ul,ol,table,pre{max-width:var(--measure)}a{color:var(--green)}li::marker{color:var(--green)}code{padding:.15em .35em;background:#f0f3f1;border-radius:4px;font:14px var(--mono)}pre{position:relative;overflow:auto;margin:18px 0 26px;padding:20px 54px 20px 22px;color:#dcebe1;background:var(--code);border-left:4px solid var(--green);border-radius:8px;font:13px/1.55 var(--mono);white-space:pre-wrap}pre code{padding:0;color:inherit;background:none}.copy{position:absolute;top:10px;right:10px;padding:5px 8px;color:#d8ebe0;background:#34453b;border:0;border-radius:5px;cursor:pointer}
+    table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:11px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--rule)}th{color:#fff;background:var(--green)}tbody tr:nth-child(even){background:#f7f9f7}.callout{max-width:var(--measure);margin:24px 0;padding:17px 20px;background:var(--soft);border-left:4px solid var(--green)}.chapter{font-size:.55em;vertical-align:.35em}.matrix{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:620px;margin:22px 0}.matrix div{min-height:110px;padding:16px;background:var(--soft);border:1px solid #cfe0d4;border-radius:6px}.matrix strong{display:block;color:var(--dark)}
+    footer{margin-top:90px;padding-top:28px;color:var(--muted);border-top:3px solid var(--green);font-size:13px}
+    @media(max-width:900px){nav{position:static;width:auto}nav>a:not(.brand){display:inline-block}.brand{max-width:290px}main{margin:0}article{padding:28px 24px 80px}}@media(max-width:560px){.matrix{grid-template-columns:1fr}h2{font-size:28px}}@media print{nav,#progress,.copy{display:none}main{margin:0}article{max-width:none;padding:0}}
+  </style>
+</head>
+<body>
+<div id="progress"></div>
+<nav aria-label="Guide contents">
+  <a class="brand" href="https://www.expectedparrot.com/"><span>Expected Parrot<small>Open-source research tools</small></span></a>
+  <h2>Strategic Scenario Planning<br>with Kahn</h2>
+  <div class="part">Method</div>
+  <a href="#orientation">1. What Kahn is for</a>
+  <a href="#question">2. Frame the question</a>
+  <a href="#forces">3. Map forces</a>
+  <a href="#axes">4. Select uncertainties</a>
+  <a href="#scenarios">5. Build scenarios</a>
+  <div class="part">Strategy</div>
+  <a href="#options">6. Test options</a>
+  <a href="#signals">7. Monitor signals</a>
+  <a href="#report">8. Produce the report</a>
+  <div class="part">Reference</div>
+  <a href="#quickstart">Command sequence</a>
+  <a href="#edsl">EDSL Jobs workflow</a>
+  <a href="#principles">Facilitation principles</a>
+  <a href="#install">Install and contribute</a>
+</nav>
+<main><article>
+  <header>
+    <div class="eyebrow">Expected Parrot · A practical facilitation guide</div>
+    <h1>Strategic Scenario Planning with Kahn</h1>
+    <p class="dek">Turn consequential uncertainty into four plausible futures, then find the strategies that remain useful across them.</p>
+    <div class="meta"><span>Tool: <strong>Kahn</strong></span><span>Method: <strong>two-axis scenario planning</strong></span><span>Interface: <strong>JSON-first CLI</strong></span></div>
+  </header>
+
+  <section id="orientation">
+    <h2><span class="chapter">01</span> What Kahn is for</h2>
+    <p>Kahn is a command-line workspace for strategic decisions shaped by external uncertainty. It records environmental forces, identifies two critical uncertainties, constructs a four-scenario matrix, and tests strategic options against every future.</p>
+    <p>Scenario planning is not forecasting. Its purpose is to expand the set of futures a team can recognize and prepare for. A useful exercise makes assumptions visible, reveals fragile commitments, identifies robust moves, and defines observable signals that show which future may be emerging.</p>
+    <div class="callout"><strong>Use Kahn when</strong> the decision is strategic, several futures are plausible, and the cost of optimizing for the wrong future is meaningful. For a single gamble with defensible probabilities, a decision tree is usually a better fit.</div>
+  </section>
+
+  <section id="question">
+    <h2><span class="chapter">02</span> Frame the focal question</h2>
+    <p>A strong focal question names the decision, decision maker, and horizon. “What will happen to our market?” is too broad. “How should we enter the commercial battery market over the next three years?” creates a useful boundary.</p>
+    <pre><code>kahn init \
+  --question "How should we enter the commercial battery market?" \
+  --domain "North American distributed energy" \
+  --horizon "2027–2030"</code></pre>
+    <p>The horizon should be long enough for structural uncertainty to matter but short enough for today’s strategic choices to remain relevant.</p>
+  </section>
+
+  <section id="forces">
+    <h2><span class="chapter">03</span> Map environmental forces</h2>
+    <p>Scan political, economic, social, technological, legal, environmental, customer, and competitive conditions. Separate relatively predictable trends from genuinely uncertain drivers. Both belong in the analysis, but they play different roles.</p>
+    <table><thead><tr><th>Type</th><th>Role in the exercise</th><th>Example</th></tr></thead><tbody>
+      <tr><td>Trend</td><td>Appears in all four scenarios.</td><td>Battery costs continue to decline.</td></tr>
+      <tr><td>Uncertainty</td><td>Could resolve in meaningfully different directions.</td><td>Utilities centralize or decentralize grid control.</td></tr>
+      <tr><td>Constraint</td><td>Limits feasible responses.</td><td>Interconnection queues remain slow.</td></tr>
+    </tbody></table>
+    <pre><code>kahn force add --name "Battery cost decline" \
+  --domain technology --type trend --impact high \
+  --predictability high --direction decreasing \
+  --notes "Pack costs continue falling, though the rate may vary"</code></pre>
+  </section>
+
+  <section id="axes">
+    <h2><span class="chapter">04</span> Select critical uncertainties</h2>
+    <p>Capture several candidate uncertainties before choosing axes. Score them for impact on the focal decision and genuine uncertainty. The best pair is consequential, reasonably independent, and capable of producing four distinct worlds.</p>
+    <p>Each axis needs two plausible poles—not “good” and “bad,” but contrasting states that could each occur. Avoid axes that are merely two phrasings of the same underlying force.</p>
+    <pre><code>kahn uncertainty select f002 f004
+kahn uncertainty set-poles cu001 \
+  --pole-a "Centralized utility control" \
+  --pole-b "Open distributed markets"</code></pre>
+  </section>
+
+  <section id="scenarios">
+    <h2><span class="chapter">05</span> Build four coherent scenarios</h2>
+    <p>Crossing two uncertainties yields four scenario shells. Kahn creates these combinations; the team gives each a memorable name, narrative, implications, and early indicators.</p>
+    <div class="matrix" aria-label="Example two by two scenario matrix">
+      <div><strong>Utility Fortress</strong>Centralized control × slow adoption</div>
+      <div><strong>Managed Acceleration</strong>Centralized control × rapid adoption</div>
+      <div><strong>Local Experiment</strong>Open markets × slow adoption</div>
+      <div><strong>Energy Bazaar</strong>Open markets × rapid adoption</div>
+    </div>
+    <pre><code>kahn scenario build
+kahn scenario name sc001 --name "Utility Fortress" \
+  --tagline "Scale exists, but incumbents control access"
+kahn scenario narrative set sc001 \
+  --file narratives/utility-fortress.md</code></pre>
+    <p>A good narrative is causal rather than decorative: it explains how the world arrived there, how actors respond, what becomes easier or harder, and which assumptions no longer hold.</p>
+  </section>
+
+  <section id="options">
+    <h2><span class="chapter">06</span> Test strategic options</h2>
+    <p>Evaluate each real option in all four scenarios. Look for no-regret moves, contingent bets, hedges, and commitments that perform well only in one favored future. Robust does not mean identical performance everywhere; it means acceptable performance without relying on one narrow forecast.</p>
+    <table><thead><tr><th>Pattern</th><th>Strategic response</th></tr></thead><tbody>
+      <tr><td>Strong in every scenario</td><td>Candidate no-regret move.</td></tr>
+      <tr><td>High upside, narrow fit</td><td>Stage the commitment or preserve an option.</td></tr>
+      <tr><td>Weak in one scenario</td><td>Add a hedge or define an exit trigger.</td></tr>
+      <tr><td>Weak broadly</td><td>Redesign or discard.</td></tr>
+    </tbody></table>
+  </section>
+
+  <section id="signals">
+    <h2><span class="chapter">07</span> Monitor signals</h2>
+    <p>Scenarios become operational when they have observable indicators. Choose signals that distinguish the scenarios, can be monitored at a practical cadence, and would change a decision. Assign an owner and a place to observe each one.</p>
+    <pre><code>kahn scenario signals set sc001 \
+  --signal "Utilities restrict third-party aggregation" \
+  --observable-in "state regulatory dockets"</code></pre>
+  </section>
+
+  <section id="report">
+    <h2><span class="chapter">08</span> Produce a decision-ready report</h2>
+    <p>Validation catches incomplete axes, narratives, evaluations, and signals before reporting. The generated artifacts summarize the scenarios, strategy matrix, robust recommendations, and signal dashboard.</p>
+    <pre><code>kahn validate
+kahn report generate
+kahn report export --format html --output report.html</code></pre>
+    <p>Save snapshots before changing axes or revising a completed workshop. The project store remains the source of truth; generated reports are outputs, not the working record.</p>
+  </section>
+
+  <section id="quickstart">
+    <h2>Quick command sequence</h2>
+    <ol>
+      <li><code>kahn init</code> — frame the focal question.</li>
+      <li><code>kahn force add</code> — record trends and uncertain forces.</li>
+      <li><code>kahn uncertainty select</code> — choose two forces as axes.</li>
+      <li><code>kahn uncertainty set-poles</code> — define each axis’s extremes.</li>
+      <li><code>kahn scenario build</code> — create the four futures.</li>
+      <li><code>kahn option add</code> — record and evaluate strategic choices.</li>
+      <li><code>kahn validate</code> — check completeness and consistency.</li>
+      <li><code>kahn report generate</code> — create decision artifacts.</li>
+    </ol>
+    <p>Run <code>kahn --help</code> or <code>kahn &lt;command&gt; --help</code> for the exact options available in the installed version.</p>
+  </section>
+
+  <section id="principles">
+    <h2>Facilitation principles</h2>
+    <ul>
+      <li>Delay axis selection until the environmental scan is broad enough.</li>
+      <li>Keep all four scenarios plausible; do not hide a preferred forecast in the matrix.</li>
+      <li>Use names that are memorable but neutral enough to invite honest analysis.</li>
+      <li>Test the strategy the organization is actually considering, not generic alternatives.</li>
+      <li>Translate scenarios into staged commitments, hedges, and monitoring triggers.</li>
+    </ul>
+  </section>
+
+  <section id="edsl">
+    <h2>EDSL Jobs workflow</h2>
+    <p>Kahn packages the research design; the <code>ep</code> client executes it. Generated Jobs contain questions, agents, and project context, but no model. This keeps model selection, cost review, and network execution explicit.</p>
+    <pre><code>kahn job generate evaluate-options \
+  --output jobs/evaluate-options.jobs.ep
+ep inspect jobs/evaluate-options.jobs.ep
+ep jobs cost jobs/evaluate-options.jobs.ep
+ep run jobs/evaluate-options.jobs.ep \
+  --model gpt-5-nano \
+  --output jobs/evaluate-options-results.ep
+kahn ingest option-evaluations \
+  --from jobs/evaluate-options-results.ep</code></pre>
+    <p>The same sequence supports <code>research-forces</code> and <code>write-narrative</code>. Kahn validates the Results’ project and scenario identifiers before changing project state. Preserve both artifacts: <code>*.jobs.ep</code> records what was asked, while <code>*-results.ep</code> records the returned answers and model provenance.</p>
+  </section>
+
+  <section id="install">
+    <h2>Install and contribute</h2>
+    <pre><code>git clone https://github.com/expectedparrot/kahn.git
+cd kahn
+python -m pip install -e .
+kahn --help</code></pre>
+    <p>Kahn requires Python 3.11 or newer. Source code is available on <a href="https://github.com/expectedparrot/kahn">GitHub</a> and is released under the <a href="https://github.com/expectedparrot/kahn/blob/main/LICENSE">MIT License</a>.</p>
+  </section>
+
+  <footer>Expected Parrot · Kahn strategic scenario-planning toolkit · MIT licensed</footer>
+</article></main>
+<script>
+  document.querySelectorAll("pre").forEach(function(pre){
+    var button=document.createElement("button");button.className="copy";button.textContent="Copy";
+    button.addEventListener("click",function(){navigator.clipboard.writeText(pre.innerText.replace(/Copy$/,"").trim());button.textContent="Copied";setTimeout(function(){button.textContent="Copy"},1200)});
+    pre.appendChild(button);
+  });
+  addEventListener("scroll",function(){var h=document.documentElement;document.getElementById("progress").style.width=(100*h.scrollTop/(h.scrollHeight-h.clientHeight))+"%"});
+</script>
+</body>
+</html>
