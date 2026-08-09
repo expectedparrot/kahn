@@ -19,6 +19,8 @@ def validate_project(store: ProjectStore) -> list[str]:
         signals = store.get_scenario_signals(scenario.id)
         if signals.scenario_id != scenario.id:
             errors.append(f"{scenario.id} signals file has mismatched scenario_id {signals.scenario_id}")
+        if len(signals.signals) < 3:
+            errors.append(f"{scenario.id} requires at least 3 signals; found {len(signals.signals)}")
 
     for option in store.list_options():
         perf_path = store.option_dir(option.id) / "performance.json"

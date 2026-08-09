@@ -104,8 +104,56 @@ def phase_state(store) -> dict:
 
 def workflow_assessment(store) -> dict:
     """Return the first incomplete workflow gate based on persisted artifacts."""
+    project = store.root.resolve()
+
+    def action(
+        label: str,
+        args: list[str],
+        *,
+        input_schema: dict | None = None,
+        mutates: bool = True,
+        approval: bool = False,
+        transition: str,
+        prerequisites: list[dict] | None = None,
+        alternatives: list[dict] | None = None,
+    ) -> dict:
+        argv = ["kahn", *args, "--project-dir", str(project)]
+        return {
+            "label": label,
+            "argv": argv,
+            "cwd": str(project),
+            "project_dir": str(project),
+            "input_schema": input_schema or {},
+            "mutates_state": mutates,
+            "requires_user_approval": approval,
+            "may_spend_money": False,
+            "expected_state_transition": transition,
+            "prerequisites": prerequisites or [],
+            "alternatives": alternatives or [],
+        }
+
+    def result(stage: str, reason: str, selected: dict, ready: bool = False) -> dict:
+        return {
+            "stage": stage,
+            "ready": ready,
+            "reason": reason,
+            "action": selected,
+            "next_command": " ".join(selected["argv"]),
+            "guide": "kahn guide",
+        }
+
     if not store.meta_path.exists():
-        return {"stage": "init", "ready": False, "reason": "No Kahn project exists.", "next_command": "kahn init --question '...' --domain '...' --horizon '...'", "guide": "kahn guide"}
+        selected = action(
+            "Initialize the scenario project",
+            ["init"],
+            input_schema={
+                "question": {"type": "string", "required": True, "flag": "--question"},
+                "domain": {"type": "string", "required": True, "flag": "--domain"},
+                "horizon": {"type": "string", "required": True, "flag": "--horizon"},
+            },
+            transition="Create the project and enter the forces stage.",
+        )
+        return result("init", "No Kahn project exists.", selected)
 
     meta = store.read_meta()
     forces = store.list_forces()
@@ -114,25 +162,64 @@ def workflow_assessment(store) -> dict:
     critical = store.list_critical_uncertainties()
     scenarios = store.list_scenarios()
     options = store.list_options()
-    gates = [
-        (not forces, "forces", "No environmental forces have been recorded.", "kahn force add --help"),
-        (not trends, "forces", "At least one relatively predictable trend is required.", "kahn force add --help"),
-        (len(uncertainties) < 2, "forces", "At least two uncertain forces are required.", "kahn force add --help"),
-        ("forces" not in meta.phase_locks, "forces", "Review and lock the force set.", "kahn phase advance"),
-        (len(critical) != 2, "uncertainty_selection", "Select exactly two critical uncertainties.", "kahn uncertainty select --help"),
-        (any(not item.pole_a or not item.pole_b for item in critical), "uncertainty_selection", "Both critical uncertainties need poles.", "kahn uncertainty set-poles --help"),
-        ("Independence check run." not in (meta.notes or ""), "uncertainty_selection", "Run the independence check for the selected axes.", "kahn uncertainty check-independence"),
-        ("uncertainty_selection" not in meta.phase_locks, "uncertainty_selection", "Review and lock the selected axes.", "kahn phase advance"),
-        (len(scenarios) != 4, "scenario_construction", "Build the four-scenario matrix.", "kahn scenario build"),
-        (any(not item.name or not item.tagline for item in scenarios), "scenario_construction", "Every scenario needs a name and tagline.", "kahn scenario name --help"),
-        (any(not store.get_scenario_narrative(item.id).strip() for item in scenarios), "scenario_construction", "Every scenario needs a narrative.", "kahn job generate write-narrative --help"),
-        (any(not store.get_scenario_signals(item.id).signals for item in scenarios), "scenario_construction", "Every scenario needs early-warning signals.", "kahn scenario signals set --help"),
-        ("scenario_construction" not in meta.phase_locks, "scenario_construction", "Review and lock the scenario set.", "kahn phase advance"),
-        (not options, "option_evaluation", "Add at least one strategic option.", "kahn option add --help"),
-        (any(not (store.option_dir(item.id) / "performance.json").exists() for item in options), "option_evaluation", "Every option needs a cross-scenario evaluation.", "kahn job generate evaluate-options"),
-        (not (store.root / "output" / "summary.md").exists(), "reporting", "Generate the final report.", "kahn report generate"),
-    ]
-    for incomplete, stage, reason, command in gates:
-        if incomplete:
-            return {"stage": stage, "ready": False, "reason": reason, "next_command": command, "guide": "kahn guide"}
-    return {"stage": "complete", "ready": True, "reason": "All workflow artifacts are present.", "next_command": "kahn validate", "guide": "kahn guide"}
+    force_schema = {
+        "name": {"type": "string", "required": True, "flag": "--name"},
+        "domain": {"enum": ["political", "economic", "social", "technological", "environmental", "legal"], "required": True, "flag": "--domain"},
+        "type": {"enum": ["trend", "uncertainty"], "required": True, "flag": "--type"},
+        "impact": {"enum": ["low", "medium", "high"], "required": True, "flag": "--impact"},
+        "predictability": {"enum": ["low", "medium", "high"], "required": True, "flag": "--predictability"},
+        "direction": {"type": "string", "required": True, "flag": "--direction"},
+    }
+    if not forces or not trends or len(uncertainties) < 2:
+        return result("forces", "Add forces until at least one trend and two uncertainties exist.", action("Add an environmental force", ["force", "add"], input_schema=force_schema, transition="Add one force and remain in forces until completeness thresholds pass."))
+
+    def phase_action(phase: str, label: str) -> dict:
+        snapshot_label = f"{phase}-reviewed"
+        snapshot = store.root / "snapshots" / snapshot_label
+        validation = action("Validate before milestone review", ["validate"], mutates=False, transition="Confirm project invariants before snapshotting and locking.")
+        if not snapshot.exists():
+            return action("Save the reviewed milestone", ["snapshot", "save", snapshot_label], prerequisites=[validation], transition=f"Preserve the {phase} state before locking it.")
+        return action(label, ["phase", "advance"], approval=True, prerequisites=[validation], transition=f"Lock {phase} and enter the next phase.")
+
+    if "forces" not in meta.phase_locks:
+        return result("forces", "Review, snapshot, and lock the force set.", phase_action("forces", "Approve and lock the force set"))
+    if len(critical) != 2:
+        schema = {"force_id_a": {"enum": [item.id for item in uncertainties], "required": True, "position": 1}, "force_id_b": {"enum": [item.id for item in uncertainties], "required": True, "position": 2}}
+        return result("uncertainty_selection", "Select exactly two critical uncertainties.", action("Select the two scenario axes", ["uncertainty", "select"], input_schema=schema, transition="Create two critical-uncertainty records."))
+    incomplete_poles = next((item for item in critical if not item.pole_a or not item.pole_b), None)
+    if incomplete_poles:
+        schema = {"pole_a": {"type": "string", "required": True, "flag": "--pole-a"}, "pole_b": {"type": "string", "required": True, "flag": "--pole-b"}}
+        return result("uncertainty_selection", f"{incomplete_poles.id} needs two poles.", action("Define uncertainty poles", ["uncertainty", "set-poles", incomplete_poles.id], input_schema=schema, transition=f"Complete poles for {incomplete_poles.id}."))
+    if "Independence check run." not in (meta.notes or ""):
+        return result("uncertainty_selection", "Run the independence check for the selected axes.", action("Check axis independence", ["uncertainty", "check-independence"], mutates=True, transition="Record the independence review."))
+    if "uncertainty_selection" not in meta.phase_locks:
+        return result("uncertainty_selection", "Review, snapshot, and lock the selected axes.", phase_action("uncertainty_selection", "Approve and lock the selected axes"))
+    if len(scenarios) != 4:
+        return result("scenario_construction", "Build the four-scenario matrix.", action("Build the scenario matrix", ["scenario", "build"], transition="Create four scenario records."))
+    unnamed = next((item for item in scenarios if not item.name or not item.tagline), None)
+    if unnamed:
+        schema = {"name": {"type": "string", "required": True, "flag": "--name"}, "tagline": {"type": "string", "required": True, "flag": "--tagline"}}
+        return result("scenario_construction", f"{unnamed.id} needs a name and tagline.", action("Name the scenario", ["scenario", "name", unnamed.id], input_schema=schema, transition=f"Name {unnamed.id}."))
+    missing_narrative = next((item for item in scenarios if not store.get_scenario_narrative(item.id).strip()), None)
+    if missing_narrative:
+        jobs_path = (project / "jobs" / f"narrative-{missing_narrative.id}.jobs.ep").resolve()
+        alternative = action("Generate narrative-writing Jobs", ["job", "generate", "write-narrative", missing_narrative.id, "--output", str(jobs_path)], transition="Create a model-free Jobs package; remote execution remains approval-gated.")
+        schema = {"text": {"type": "string", "required": True, "flag": "--text"}}
+        return result("scenario_construction", f"{missing_narrative.id} needs a narrative.", action("Set the scenario narrative", ["scenario", "narrative", "set", missing_narrative.id], input_schema=schema, transition=f"Store the narrative for {missing_narrative.id}.", alternatives=[alternative]))
+    signal_scenario = next((item for item in scenarios if len(store.get_scenario_signals(item.id).signals) < 3), None)
+    if signal_scenario:
+        observed = len(store.get_scenario_signals(signal_scenario.id).signals)
+        schema = {"description": {"type": "string", "required": True, "flag": "--description"}, "observable_in": {"type": "string", "required": True, "flag": "--observable-in"}}
+        return result("scenario_construction", f"{signal_scenario.id} has {observed} of 3 required signals.", action("Add an early-warning signal", ["scenario", "signals", "add", signal_scenario.id], input_schema=schema, transition=f"Add one signal to {signal_scenario.id}; {2 - observed} will remain afterward."))
+    if "scenario_construction" not in meta.phase_locks:
+        return result("scenario_construction", "Review, snapshot, and lock the scenarios.", phase_action("scenario_construction", "Approve and lock the scenarios"))
+    if not options:
+        schema = {"name": {"type": "string", "required": True, "flag": "--name"}, "description": {"type": "string", "required": True, "flag": "--description"}, "hedging": {"type": "boolean", "required": False, "flag": "--hedging"}}
+        return result("option_evaluation", "Add at least one strategic option.", action("Add a strategic option", ["option", "add"], input_schema=schema, transition="Add one option for cross-scenario evaluation."))
+    unevaluated = next((item for item in options if not (store.option_dir(item.id) / "performance.json").exists()), None)
+    if unevaluated:
+        jobs_path = (project / "jobs" / "evaluate-options.jobs.ep").resolve()
+        return result("option_evaluation", f"{unevaluated.id} needs cross-scenario evaluation.", action("Generate option-evaluation Jobs", ["job", "generate", "evaluate-options", "--output", str(jobs_path)], transition="Create a model-free Jobs package; inspect and cost it before approval-gated execution."))
+    if not (store.root / "output" / "summary.md").exists():
+        return result("reporting", "Generate the final report.", action("Generate the final report", ["report", "generate"], prerequisites=[action("Validate the complete project", ["validate"], mutates=False, transition="Confirm report prerequisites.")], transition="Write the report artifact bundle."))
+    return result("complete", "All workflow artifacts are present.", action("Validate the completed project", ["validate"], mutates=False, transition="Confirm the completed project remains valid."), ready=True)

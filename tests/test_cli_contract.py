@@ -39,6 +39,30 @@ def test_error_envelope_is_structured_and_nonzero(tmp_path) -> None:
     assert payload["errors"][0]["code"] == "ID_NOT_FOUND"
 
 
+@pytest.mark.parametrize(
+    ("flag", "value", "field"),
+    [
+        ("--domain", "Legal/Political", "domain"),
+        ("--type", "maybe", "type"),
+        ("--impact", "med", "impact_magnitude"),
+        ("--predictability", "certain", "predictability"),
+    ],
+)
+def test_invalid_force_enums_return_structured_envelopes(tmp_path, flag, value, field) -> None:
+    project = tmp_path / "project"
+    initialized = runner.invoke(app, ["init", "--question", "Q?", "--domain", "test", "--horizon", "2030", "--project-dir", str(project)])
+    assert initialized.exit_code == 0
+    args = ["force", "add", "--name", "Force", "--domain", "legal", "--type", "trend", "--impact", "high", "--predictability", "high", "--direction", "steady", "--project-dir", str(project)]
+    args[args.index(flag) + 1] = value
+    result = runner.invoke(app, args)
+    payload = json.loads(result.stdout)
+    assert result.exit_code == 1
+    assert payload["errors"][0]["code"] == "INVALID_ENUM_VALUE"
+    assert payload["errors"][0]["context"]["field"] == field
+    assert value == payload["errors"][0]["context"]["value"]
+    assert payload["errors"][0]["context"]["accepted"]
+
+
 def test_human_mode_is_not_json() -> None:
     result = runner.invoke(app, ["guide", "--human"])
     assert result.exit_code == 0
@@ -64,3 +88,18 @@ def test_every_leaf_command_offers_human_output() -> None:
         result = runner.invoke(app, [*prefix, "--help"])
         assert result.exit_code == 0, " ".join(prefix)
         assert "--human" in result.stdout, " ".join(prefix)
+
+
+def test_next_actions_are_absolute_and_isolated_for_nested_projects_with_spaces(tmp_path) -> None:
+    projects = [tmp_path / "client one" / "scenario plan", tmp_path / "client two" / "scenario plan"]
+    actions = []
+    for project in projects:
+        result = runner.invoke(app, ["next", "--project-dir", str(project)])
+        payload = json.loads(result.stdout)
+        action = payload["data"]["action"]
+        assert action["project_dir"] == str(project.resolve())
+        assert action["cwd"] == str(project.resolve())
+        assert action["argv"][-2:] == ["--project-dir", str(project.resolve())]
+        assert {"question", "domain", "horizon"} == set(action["input_schema"])
+        actions.append(action)
+    assert actions[0]["project_dir"] != actions[1]["project_dir"]

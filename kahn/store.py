@@ -34,7 +34,7 @@ PHASE_ORDER = [
 
 
 class KahnError(Exception):
-    def __init__(self, code: str, message: str, context: str | None = None, hint: str | None = None):
+    def __init__(self, code: str, message: str, context: Any = None, hint: str | None = None):
         super().__init__(message)
         self.code = code
         self.message = message

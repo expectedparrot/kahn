@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import typer
+from pydantic import ValidationError
 
 from ..renderer import emit_json, render_error
 from ..store import KahnError, ProjectStore, default_project_dir, error_envelope, make_json_envelope
@@ -38,3 +39,23 @@ def fail(command: str, err: KahnError, json_flag: bool) -> None:
     else:
         render_error(err)
     raise typer.Exit(code=1)
+
+
+def fail_validation(command: str, err: ValidationError, json_flag: bool) -> None:
+    """Translate expected Pydantic input errors into Kahn's stable envelope."""
+    detail = err.errors()[0]
+    field = ".".join(str(part) for part in detail.get("loc", ()))
+    context = {"field": field, "value": detail.get("input")}
+    expected = detail.get("ctx", {}).get("expected")
+    if expected:
+        context["accepted"] = [item.strip(" '") for item in str(expected).replace(" or ", ",").split(",")]
+    fail(
+        command,
+        KahnError(
+            "INVALID_ENUM_VALUE" if detail.get("type") == "literal_error" else "VALIDATION_FAILED",
+            f"Invalid value for {field or 'input'}: {detail.get('msg', 'validation failed')}.",
+            context=context,
+            hint="Choose one of the accepted values shown in the error context.",
+        ),
+        json_flag,
+    )

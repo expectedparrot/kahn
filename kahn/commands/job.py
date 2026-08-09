@@ -38,6 +38,8 @@ def _build(
     except Exception as exc:
         fail(command, KahnError("EDSL_ERROR", str(exc), context=str(output)), json_flag)
     expected = edsl_jobs.expected_results_path(output)
+    output = output.resolve()
+    expected = expected.resolve()
     run = f"ep run {output} --model <model-name> --output {expected}"
     data = {
         "object_type": "Jobs",
@@ -49,6 +51,12 @@ def _build(
         "scenario_count": len(jobs.scenarios),
         "model_count": len(jobs.models),
         "saved": saved,
+        "execution_plan": [
+            {"label": "Inspect Jobs", "argv": ["ep", "inspect", str(output)], "may_spend_money": False, "requires_user_approval": False},
+            {"label": "Estimate cost", "argv": ["ep", "jobs", "cost", str(output)], "may_spend_money": False, "requires_user_approval": False},
+            {"label": "Run Jobs", "argv": ["ep", "run", str(output), "--model"], "output_argv": ["--output", str(expected)], "input_schema": {"model": {"type": "string", "required": True}}, "may_spend_money": True, "requires_user_approval": True},
+            {"label": "Ingest Results", "argv": [*ingest_command.split(), "--from", str(expected), "--project-dir", str(store_for(project_dir).root.resolve())], "may_spend_money": False, "requires_user_approval": False},
+        ],
     }
     next_steps = [
         f"ep inspect {output}",

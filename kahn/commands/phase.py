@@ -35,8 +35,9 @@ def _phase_validation(store, phase: str) -> list[str]:
                 issues.append(f"{scenario.id} is missing a name or tagline.")
             if not store.get_scenario_narrative(scenario.id).strip():
                 issues.append(f"{scenario.id} is missing a narrative.")
-            if len(store.get_scenario_signals(scenario.id).signals) == 0:
-                issues.append(f"{scenario.id} is missing signals.")
+            signal_count = len(store.get_scenario_signals(scenario.id).signals)
+            if signal_count < 3:
+                issues.append(f"{scenario.id} requires at least 3 signals; found {signal_count}.")
     return issues
 
 

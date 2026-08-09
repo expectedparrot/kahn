@@ -3,11 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import typer
+from pydantic import ValidationError
 
 from ..models import Force
 from ..renderer import render_kv_panel
 from ..store import KahnError, now_utc
-from .common import HumanOption, ProjectDirOption, QuietOption, fail, finish, should_emit_json, store_for
+from .common import HumanOption, ProjectDirOption, QuietOption, fail, fail_validation, finish, should_emit_json, store_for
 
 app = typer.Typer(help="Manage environmental forces.")
 
@@ -44,6 +45,8 @@ def add_force(
                 notes=notes,
             )
             store.save_force(force)
+    except ValidationError as err:
+        fail_validation(command, err, json_flag)
     except KahnError as err:
         fail(command, err, json_flag)
     if json_flag:
@@ -74,6 +77,8 @@ def list_forces(
     store = store_for(project_dir)
     try:
         forces = store.list_forces()
+    except ValidationError as err:
+        fail_validation(command, err, json_flag)
     except KahnError as err:
         fail(command, err, json_flag)
     if type:
@@ -166,6 +171,8 @@ def edit_force(
             updates["notes"] = notes
         force = Force.model_validate(updates)
         store.save_force(force)
+    except ValidationError as err:
+        fail_validation(command, err, json_flag)
     except KahnError as err:
         fail(command, err, json_flag)
     if json_flag:

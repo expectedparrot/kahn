@@ -29,14 +29,17 @@ def compute_consistency_score(
             notes.append(f"Narrative references {counterpart} language for {cu_id}.")
 
     trend_names = {force.id: force.name.lower() for force in forces}
+    explicitly_mapped = {force_id for force_id, passage in scenario.predetermined_evidence.items() if passage.strip()}
     missing = [
         force_id
         for force_id in scenario.predetermined_element_ids
-        if trend_names.get(force_id) and trend_names[force_id] not in text
+        if force_id not in explicitly_mapped and trend_names.get(force_id) and trend_names[force_id] not in text
     ]
     if missing:
         score -= min(0.3, 0.1 * len(missing))
-        notes.append(f"Predetermined forces not reflected in narrative: {', '.join(missing)}.")
+        notes.append(f"Predetermined forces lack explicit evidence and exact-name lexical matches: {', '.join(missing)}.")
+    if explicitly_mapped:
+        notes.append(f"Explicit evidence mappings accepted for: {', '.join(sorted(explicitly_mapped))}.")
 
     word_count = len(narrative.split())
     if word_count < 100:

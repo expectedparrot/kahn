@@ -53,7 +53,7 @@ kahn init --question "..." --domain "..." --horizon "..." --project-dir <dir>
 **Key commands:**
 ```bash
 kahn force add --name "..." --domain <pestel> --type <trend|uncertainty> \
-               --impact <low|med|high> --predictability <low|med|high> \
+               --impact <low|medium|high> --predictability <low|medium|high> \
                --direction "..." --project-dir <dir>
 kahn force list --project-dir <dir>
 kahn force list --type uncertainty --project-dir <dir>

@@ -97,7 +97,10 @@ def ingest_forces(store: ProjectStore, results) -> tuple[list[Force], list[str]]
 def ingest_narrative(store: ProjectStore, results, scenario_id: str) -> tuple[int, list[str]]:
     _require_questions(results, {"narrative"})
     validate_project(results, store)
-    rows = results.select("scenario.scenario_id", "answer.narrative").to_dicts(remove_prefix=True)
+    selection = ["scenario.scenario_id", "answer.narrative"]
+    if "force_evidence" in results.survey.question_names:
+        selection.append("answer.force_evidence")
+    rows = results.select(*selection).to_dicts(remove_prefix=True)
     if not rows:
         raise KahnError("VALIDATION_FAILED", "Results contain no narrative answer.")
     result_scenario_id = str(rows[0].get("scenario_id", ""))
@@ -107,11 +110,20 @@ def ingest_narrative(store: ProjectStore, results, scenario_id: str) -> tuple[in
             "Results belong to a different scenario.",
             context=f"expected {scenario_id}, got {result_scenario_id or '(missing)'}",
         )
-    store.get_scenario_meta(scenario_id)
+    scenario = store.get_scenario_meta(scenario_id)
     narrative = str(rows[0].get("narrative", "")).strip()
     if not narrative:
         raise KahnError("VALIDATION_FAILED", "Narrative answer is empty.")
     store.save_scenario_narrative(scenario_id, narrative)
+    evidence = rows[0].get("force_evidence", {})
+    if isinstance(evidence, dict):
+        valid_evidence = {str(key): str(value) for key, value in evidence.items() if key in scenario.predetermined_element_ids and str(value).strip()}
+        if valid_evidence:
+            data = scenario.model_dump()
+            data["predetermined_evidence"] = valid_evidence
+            from .models import ScenarioMeta
+
+            store.save_scenario_meta(ScenarioMeta.model_validate(data))
     warnings = ["Narrative is under 100 words."] if len(narrative.split()) < 100 else []
     return len(narrative.split()), warnings
 

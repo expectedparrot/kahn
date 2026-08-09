@@ -20,7 +20,7 @@ kahn status
 
 ### Phase 1: Forces
 ```bash
-kahn force add --name "..." --domain <pestel> --type <trend|uncertainty> --impact <low|med|high> --predictability <low|med|high> --direction "..."
+kahn force add --name "..." --domain <pestel> --type <trend|uncertainty> --impact <low|medium|high> --predictability <low|medium|high> --direction "..."
 kahn force list [--type trend|uncertainty] [--impact low|medium|high]
 kahn force show <id>
 kahn force edit <id> [--name] [--impact] [--predictability] [--direction] [--notes]
@@ -41,7 +41,8 @@ kahn scenario build
 kahn scenario name <id> --name "..." --tagline "..."
 kahn scenario narrative set <id> --text "..." | --file PATH
 kahn scenario narrative show <id>
-kahn scenario signals set <id> --signal "..." --observable-in "..." [repeated]
+kahn scenario signals add <id> --description "..." --observable-in "..."
+kahn scenario signals set <id> --signal "..." --observable-in "..." [repeated pairs] [--replace]
 kahn scenario signals show <id>
 kahn scenario list
 kahn scenario show <id>

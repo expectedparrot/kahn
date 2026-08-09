@@ -76,7 +76,7 @@ def research_forces_jobs(meta: Any, existing_forces: list[Any]) -> Any:
 
 
 def narrative_jobs(meta: Any, scenario_meta: Any, uncertainties: list[Any], forces: list[Any]) -> Any:
-    Agent, AgentList, Jobs, Scenario, ScenarioList, _, _, QuestionFreeText, _ = _imports()
+    Agent, AgentList, Jobs, Scenario, ScenarioList, Survey, QuestionDict, QuestionFreeText, _ = _imports()
     uncertainty_by_id = {item.id: item for item in uncertainties}
     axis_outcomes = []
     for uncertainty_id, pole_key in scenario_meta.axis.items():
@@ -85,7 +85,7 @@ def narrative_jobs(meta: Any, scenario_meta: Any, uncertainties: list[Any], forc
             axis_outcomes.append(
                 f"{uncertainty.name}: {uncertainty.pole_a if pole_key == 'pole_a' else uncertainty.pole_b}"
             )
-    question = QuestionFreeText(
+    narrative_question = QuestionFreeText(
         question_name="narrative",
         question_text=(
             "Write a 250-350 word scenario narrative in present tense.\n"
@@ -96,6 +96,17 @@ def narrative_jobs(meta: Any, scenario_meta: Any, uncertainties: list[Any], forc
             "include opportunities and threats, and avoid treating this as the good or bad scenario. "
             "Write a story, not a list."
         ),
+    )
+    trend_ids = [force.id for force in forces if force.type == "trend"]
+    evidence_question = QuestionDict(
+        question_name="force_evidence",
+        question_text=(
+            "For each predetermined trend ID, provide a short passage from the narrative that demonstrates how it manifests. "
+            "Use every requested key. Predetermined trend IDs: {{ trend_ids }}"
+        ),
+        answer_keys=trend_ids,
+        value_types=[str for _ in trend_ids],
+        value_descriptions=["A short supporting passage or paraphrase" for _ in trend_ids],
     )
     scenario = Scenario({
         "kahn_phase": "write_narrative",
@@ -108,9 +119,10 @@ def narrative_jobs(meta: Any, scenario_meta: Any, uncertainties: list[Any], forc
         "scenario_tagline": scenario_meta.tagline,
         "axis_outcomes": "\n".join(f"- {item}" for item in axis_outcomes),
         "trend_forces": "\n".join(f"- {force.name}: {force.direction}" for force in forces if force.type == "trend"),
+        "trend_ids": trend_ids,
     })
     narrator = Agent(name="kahn_narrator", traits={"persona": "Neutral strategic-foresight scenario writer"})
-    return Jobs(survey=question.to_survey()).by(AgentList([narrator])).by(ScenarioList([scenario]))
+    return Jobs(survey=Survey([narrative_question, evidence_question])).by(AgentList([narrator])).by(ScenarioList([scenario]))
 
 
 def evaluate_options_jobs(meta: Any, options: list[Any], scenarios: list[Any], narratives: dict[str, str]) -> Any:

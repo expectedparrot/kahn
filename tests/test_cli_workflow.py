@@ -24,20 +24,30 @@ def test_complete_agent_workflow_reaches_report(tmp_path) -> None:
     run(project, "force", "add", "--name", "Storage costs", "--domain", "technological", "--type", "trend", "--impact", "high", "--predictability", "high", "--direction", "falling")
     run(project, "force", "add", "--name", "Regulation", "--domain", "legal", "--type", "uncertainty", "--impact", "high", "--predictability", "low", "--direction", "uncertain")
     run(project, "force", "add", "--name", "Adoption", "--domain", "social", "--type", "uncertainty", "--impact", "high", "--predictability", "low", "--direction", "uncertain")
-    assert run(project, "next")["data"]["next_command"] == "kahn phase advance"
+    assert run(project, "next")["data"]["action"]["argv"][1:4] == ["snapshot", "save", "forces-reviewed"]
+    run(project, "snapshot", "save", "forces-reviewed")
+    assert run(project, "next")["data"]["action"]["argv"][1:3] == ["phase", "advance"]
     run(project, "phase", "advance")
     run(project, "uncertainty", "select", "f002", "f003")
     run(project, "uncertainty", "set-poles", "cu001", "--pole-a", "permissive", "--pole-b", "restrictive")
     run(project, "uncertainty", "set-poles", "cu002", "--pole-a", "rapid", "--pole-b", "slow")
-    assert run(project, "next")["data"]["next_command"] == "kahn uncertainty check-independence"
+    assert run(project, "next")["data"]["action"]["argv"][1:3] == ["uncertainty", "check-independence"]
     run(project, "uncertainty", "check-independence")
+    run(project, "snapshot", "save", "uncertainty_selection-reviewed")
     run(project, "phase", "advance")
     run(project, "scenario", "build")
     for index in range(1, 5):
         scenario = f"sc{index:03d}"
         run(project, "scenario", "name", scenario, "--name", f"Future {index}", "--tagline", f"Plausible future {index}")
         run(project, "scenario", "narrative", "set", scenario, "--text", (f"Future {index} unfolds with concrete strategic consequences. " * 45))
-        run(project, "scenario", "signals", "set", scenario, "--signal", "A measurable policy or market shift", "--observable-in", "Public market data")
+        run(
+            project,
+            "scenario", "signals", "set", scenario,
+            "--signal", "A measurable policy shift", "--observable-in", "Public policy data",
+            "--signal", "A measurable market shift", "--observable-in", "Market data",
+            "--signal", "A measurable customer shift", "--observable-in", "Customer research",
+        )
+    run(project, "snapshot", "save", "scenario_construction-reviewed")
     run(project, "phase", "advance")
     run(project, "option", "add", "--name", "Staged entry", "--description", "Pilot before committing fully", "--hedging")
     evaluation_args = []

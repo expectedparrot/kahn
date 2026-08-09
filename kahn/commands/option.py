@@ -3,12 +3,13 @@ from __future__ import annotations
 from pathlib import Path
 
 import typer
+from pydantic import ValidationError
 
 from ..models import OptionMeta, OptionPerformance, ScenarioEvaluation
 from ..renderer import console, render_kv_panel, table
 from ..scorer import compute_robustness_score
 from ..store import KahnError, now_utc
-from .common import HumanOption, ProjectDirOption, QuietOption, fail, finish, should_emit_json, store_for
+from .common import HumanOption, ProjectDirOption, QuietOption, fail, fail_validation, finish, should_emit_json, store_for
 
 app = typer.Typer(help="Manage strategic options.")
 
@@ -32,6 +33,8 @@ def add_option(
             option_id = store.next_id("op", store.list_option_ids())
             option = OptionMeta(id=option_id, name=name, description=description, hedging_value=hedging, created_at=now_utc(), notes=notes)
             store.save_option_meta(option)
+    except ValidationError as err:
+        fail_validation(command, err, json_flag)
     except KahnError as err:
         fail(command, err, json_flag)
     if json_flag:
@@ -122,6 +125,8 @@ def evaluate_option(
             evaluated_at=now_utc(),
         )
         store.save_option_performance(performance)
+    except ValidationError as err:
+        fail_validation(command, err, json_flag)
     except KahnError as err:
         fail(command, err, json_flag)
     if json_flag:

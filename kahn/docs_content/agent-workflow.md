@@ -9,12 +9,15 @@ This guide and the output of `kahn next` are the authoritative operating contrac
 3. Run `kahn next` again after every material change.
 4. Continue until it reports `stage: complete`, or stop when user input, approval, or external model execution is required.
 
+`data.action` is the executable contract. It contains absolute `argv`, `cwd`, `project_dir`, required and enumerated inputs, mutation and spending flags, expected state transition, prerequisites, and alternatives. Populate inputs using their declared flag or positional metadata; do not reconstruct command names from prose.
+
 JSON is the default output. Agents must not pass `--human` when parsing commands. Every successful or failed command returns one envelope with `schema_version`, `command`, `status`, `argv`, `data`, `warnings`, `errors`, and `next_steps`.
 
 ## Safety and quality gates
 
 - Treat CLI-managed project records as the source of truth; do not hand-edit them.
 - Save a snapshot before changing selected axes or revising a reviewed milestone.
+- Use `scenario signals add` for normal incremental work. `scenario signals set` is atomic replacement and requires `--replace` once signals exist. Every scenario requires at least three signals.
 - Keep trends separate from genuinely uncertain external drivers.
 - Ask the user to confirm the focal decision, horizon, selected axes, scenario narratives, and strategic options.
 - Do not claim that scenarios are forecasts or attach probabilities without a separate defensible method.

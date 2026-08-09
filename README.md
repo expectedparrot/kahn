@@ -65,6 +65,7 @@ kahn next --project-dir ./my_project
 ```
 
 Run `kahn next` after every material change and follow its `next_steps` until the project is complete or user input, approval, or external execution is required.
+Its `data.action` object carries absolute argv and project context, structured input requirements, mutation/spending/approval metadata, prerequisites, alternatives, and the expected state transition.
 
 ## When to use this
 <!-- id: kahn/when-to-use -->

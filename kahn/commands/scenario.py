@@ -95,6 +95,7 @@ def set_narrative(
     scenario_id: str,
     file: Path | None = typer.Option(None, "--file"),
     text: str | None = typer.Option(None, "--text"),
+    force_evidence: list[str] = typer.Option([], "--force-evidence", help="Traceability mapping FORCE_ID=PASSAGE; repeatable."),
     project_dir: Path | None = ProjectDirOption,
     human: bool = HumanOption,
     quiet: bool = QuietOption,
@@ -108,14 +109,26 @@ def set_narrative(
         if bool(file) == bool(text):
             raise KahnError("VALIDATION_FAILED", "Provide exactly one of --file or --text.")
         narrative = file.read_text() if file else text or ""
-        store.get_scenario_meta(scenario_id)
+        scenario = store.get_scenario_meta(scenario_id)
+        evidence: dict[str, str] = {}
+        for item in force_evidence:
+            if "=" not in item:
+                raise KahnError("VALIDATION_FAILED", "Each --force-evidence must use FORCE_ID=PASSAGE syntax.", context=item)
+            force_id, passage = item.split("=", 1)
+            if force_id not in scenario.predetermined_element_ids:
+                raise KahnError("VALIDATION_FAILED", "Evidence references a force not assigned to this scenario.", context=force_id)
+            evidence[force_id] = passage.strip()
+        if evidence:
+            data = scenario.model_dump()
+            data["predetermined_evidence"] = evidence
+            store.save_scenario_meta(ScenarioMeta.model_validate(data))
         store.save_scenario_narrative(scenario_id, narrative)
         if len(narrative.split()) < 100:
             warnings.append("Narrative is under 100 words.")
     except KahnError as err:
         fail(command, err, json_flag)
     if json_flag:
-        finish(command, {"scenario_id": scenario_id, "word_count": len(narrative.split())}, warnings=warnings)
+        finish(command, {"scenario_id": scenario_id, "word_count": len(narrative.split()), "predetermined_evidence": evidence}, warnings=warnings)
         return
     if not quiet:
         render_kv_panel("Narrative saved", [("Scenario", scenario_id), ("Word count", str(len(narrative.split()))), ("Warnings", "; ".join(warnings) or "none")])
@@ -147,6 +160,7 @@ def set_signals(
     scenario_id: str,
     signal: list[str] = typer.Option([], "--signal"),
     observable_in: list[str] = typer.Option([], "--observable-in"),
+    replace: bool = typer.Option(False, "--replace", help="Acknowledge replacement of existing signals."),
     project_dir: Path | None = ProjectDirOption,
     human: bool = HumanOption,
     quiet: bool = QuietOption,
@@ -159,6 +173,14 @@ def set_signals(
         if len(signal) != len(observable_in):
             raise KahnError("VALIDATION_FAILED", "Each --signal must have a matching --observable-in.")
         store.get_scenario_meta(scenario_id)
+        existing = store.get_scenario_signals(scenario_id)
+        if existing.signals and not replace:
+            raise KahnError(
+                "REPLACE_CONFIRMATION_REQUIRED",
+                "This scenario already has signals; replacement requires --replace.",
+                context={"scenario_id": scenario_id, "existing_count": len(existing.signals), "new_count": len(signal)},
+                hint="Use `kahn scenario signals add` to preserve existing signals, or repeat with --replace.",
+            )
         signals = ScenarioSignals(
             scenario_id=scenario_id,
             signals=[
@@ -174,6 +196,36 @@ def set_signals(
         return
     if not quiet:
         render_kv_panel("Signals saved", [("Scenario", scenario_id), ("Count", str(len(signals.signals)))])
+
+
+@signals_app.command("add")
+def add_signal(
+    scenario_id: str,
+    description: str = typer.Option(..., "--description"),
+    observable_in: str = typer.Option(..., "--observable-in"),
+    project_dir: Path | None = ProjectDirOption,
+    human: bool = HumanOption,
+    quiet: bool = QuietOption,
+) -> None:
+    """Append one signal without replacing existing scenario signals."""
+    command = "scenario signals add"
+    json_flag = should_emit_json(human)
+    store = store_for(project_dir)
+    try:
+        store.assert_phase_unlocked("scenario_construction")
+        store.get_scenario_meta(scenario_id)
+        signals = store.get_scenario_signals(scenario_id)
+        signals.signals.append(
+            ScenarioSignal(id=f"sig{len(signals.signals) + 1:03d}", description=description, observable_in=observable_in)
+        )
+        store.save_scenario_signals(signals)
+    except KahnError as err:
+        fail(command, err, json_flag)
+    if json_flag:
+        finish(command, signals.model_dump(mode="json"))
+        return
+    if not quiet:
+        render_kv_panel("Signal added", [("Scenario", scenario_id), ("Count", str(len(signals.signals)))])
 
 
 @signals_app.command("show")

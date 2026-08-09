@@ -143,9 +143,13 @@ def generate_report(
         rankings.sort(key=lambda item: item["score"], reverse=True)
         for scenario in scenarios:
             signals = store.get_scenario_signals(scenario.id)
-            signal_dashboard[scenario.id] = signals.model_dump(mode="json")
             if len(signals.signals) < 3:
-                warnings.append(f"{scenario.id} has fewer than 3 signals.")
+                raise KahnError(
+                    "SCENARIO_SIGNALS_INCOMPLETE",
+                    "Every scenario requires at least three signals before report generation.",
+                    context={"scenario_id": scenario.id, "required": 3, "observed": len(signals.signals)},
+                )
+            signal_dashboard[scenario.id] = signals.model_dump(mode="json")
         output_dir = store.root / "output"
         existing = [output_dir / name for name in ["summary.md", "strategy_matrix.json", "robust_recommendations.md", "signal_dashboard.json"]]
         if any(path.exists() for path in existing) and not force:

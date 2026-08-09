@@ -12,6 +12,7 @@ class ScenarioMeta(BaseModel):
     tagline: str
     axis: dict[str, Literal["pole_a", "pole_b"]]
     predetermined_element_ids: list[str] = Field(default_factory=list)
+    predetermined_evidence: dict[str, str] = Field(default_factory=dict)
     internal_consistency_score: float = 0.0
     consistency_notes: str | None = None
     created_at: datetime

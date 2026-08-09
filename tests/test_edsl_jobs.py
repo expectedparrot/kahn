@@ -4,8 +4,10 @@ from datetime import datetime, timezone
 
 from edsl import Agent, Jobs, Model, Results, Scenario
 from edsl.results import Result
+from typer.testing import CliRunner
 
 from kahn import edsl_jobs
+from kahn.cli import app
 from kahn.ingest import ingest_narrative, ingest_option_evaluations
 from kahn.models import (
     CriticalUncertainty,
@@ -49,7 +51,7 @@ def fixtures():
     ]
     scenario = ScenarioMeta(
         id="sc001", name="Open acceleration", tagline="Markets expand",
-        axis={"cu001": "pole_a", "cu002": "pole_a"}, created_at=now, updated_at=now,
+        axis={"cu001": "pole_a", "cu002": "pole_a"}, predetermined_element_ids=["f001"], created_at=now, updated_at=now,
     )
     option = OptionMeta(id="op001", name="Pilot", description="Enter with a pilot.", created_at=now)
     return meta, force, uncertainties, scenario, option
@@ -88,7 +90,7 @@ def test_all_builders_are_model_free() -> None:
     ]
     assert [jobs.survey.question_names for jobs in jobs_objects] == [
         ["trends", "uncertainties"],
-        ["narrative"],
+        ["narrative", "force_evidence"],
         ["eval_op001_sc001"],
     ]
     assert all(len(jobs.models) == 0 for jobs in jobs_objects)
@@ -109,11 +111,12 @@ def test_narrative_results_ingest_into_matching_scenario(tmp_path) -> None:
     store = initialized_store(tmp_path)
     meta, force, uncertainties, scenario, _ = fixtures()
     jobs = edsl_jobs.narrative_jobs(meta, scenario, uncertainties, [force])
-    results = make_results(jobs, {"narrative": "A concrete future unfolds. " * 60})
+    results = make_results(jobs, {"narrative": "A concrete future unfolds. " * 60, "force_evidence": {"f001": "Storage becomes cheaper."}})
     word_count, warnings = ingest_narrative(store, results, scenario.id)
     assert word_count >= 100
     assert warnings == []
     assert store.get_scenario_narrative(scenario.id).startswith("A concrete future")
+    assert store.get_scenario_meta(scenario.id).predetermined_evidence == {"f001": "Storage becomes cheaper."}
 
 
 def test_option_results_are_validated_and_ingested(tmp_path) -> None:
@@ -129,3 +132,19 @@ def test_option_results_are_validated_and_ingested(tmp_path) -> None:
     performances = ingest_option_evaluations(store, results)
     assert performances[0].robustness_score == 1.0
     assert store.get_option_performance("op001").evaluations["sc001"].rating == "robust"
+
+
+def test_generated_job_returns_absolute_approval_gated_execution_plan(tmp_path) -> None:
+    store = initialized_store(tmp_path)
+    output = tmp_path / "nested jobs" / "narrative.jobs.ep"
+    result = CliRunner().invoke(app, ["job", "generate", "write-narrative", "sc001", "--output", str(output), "--project-dir", str(store.root)])
+    assert result.exit_code == 0, result.stdout
+    import json
+
+    payload = json.loads(result.stdout)
+    plan = payload["data"]["execution_plan"]
+    assert plan[0]["argv"] == ["ep", "inspect", str(output.resolve())]
+    assert plan[1]["argv"] == ["ep", "jobs", "cost", str(output.resolve())]
+    assert plan[2]["may_spend_money"] is True
+    assert plan[2]["requires_user_approval"] is True
+    assert plan[3]["argv"][-2:] == ["--project-dir", str(store.root.resolve())]
