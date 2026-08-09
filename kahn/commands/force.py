@@ -5,7 +5,7 @@ from pathlib import Path
 import typer
 
 from ..models import Force
-from ..renderer import render_kv_panel, table
+from ..renderer import render_kv_panel
 from ..store import KahnError, now_utc
 from .common import HumanOption, ProjectDirOption, QuietOption, fail, finish, should_emit_json, store_for
 

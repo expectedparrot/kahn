@@ -57,7 +57,14 @@ python -m pip install -e .
 pytest -q
 ```
 
-The [online guide](https://expectedparrot.github.io/kahn/) explains the method and the complete CLI workflow.
+The [online guide](https://expectedparrot.github.io/kahn/) explains the method and the complete CLI workflow. Agents should use the bundled control loop as the source of truth:
+
+```bash
+kahn guide
+kahn next --project-dir ./my_project
+```
+
+Run `kahn next` after every material change and follow its `next_steps` until the project is complete or user input, approval, or external execution is required.
 
 ## When to use this
 <!-- id: kahn/when-to-use -->
@@ -177,10 +184,16 @@ Agent: "I’ll add those as forces or uncertainties, define extremes for regulat
 
 ```bash
 kahn init market_entry
-kahn force add --name competitors --description "Incumbent response and new entrants"
-kahn uncertainty add --name regulation --low restrictive --high permissive
-kahn uncertainty add --name adoption --low slow --high rapid
-kahn scenario create --x regulation --y adoption
+kahn force add --name competitors --domain economic --type trend --impact high --predictability high --direction "incumbent response intensifies"
+kahn force add --name regulation --domain legal --type uncertainty --impact high --predictability low --direction "restrictive to permissive"
+kahn force add --name adoption --domain social --type uncertainty --impact high --predictability low --direction "slow to rapid"
+kahn phase advance
+kahn uncertainty select f002 f003
+kahn uncertainty set-poles cu001 --pole-a restrictive --pole-b permissive
+kahn uncertainty set-poles cu002 --pole-a slow --pole-b rapid
+kahn uncertainty check-independence
+kahn phase advance
+kahn scenario build
 kahn option add --name staged_entry --description "Pilot market entry before full rollout"
 kahn report generate
 ```
@@ -259,10 +272,16 @@ and the latter records answers and model provenance.
 
 A kahn project stores forces, uncertainties, scenarios, options, phase state, report artifacts, and snapshots in the project directory. Treat CLI-managed records as the source of truth; use snapshots before major workshop revisions or axis changes.
 
-## JSON output and error codes
+## JSON output contract and error codes
 <!-- id: kahn/json -->
 
-kahn commands emit structured output where supported. Validation errors usually indicate missing scenario axes, incomplete uncertainty extremes, absent option evaluations, or report prerequisites; fix the named project object and rerun `kahn validate`.
+Every Kahn command emits exactly one JSON envelope by default:
+
+```json
+{"schema_version":"2.0","command":"kahn ...","status":"ok","argv":[],"data":{},"warnings":[],"errors":[],"next_steps":[]}
+```
+
+Failures use the same envelope, set `status` to `error`, populate structured `errors`, and exit nonzero. Pass `--human` for terminal-oriented rendering; agents parsing output should not use it. Validation errors usually indicate missing scenario axes, incomplete uncertainty extremes, absent option evaluations, or report prerequisites; fix the named project object and rerun `kahn validate`.
 
 ## License
 

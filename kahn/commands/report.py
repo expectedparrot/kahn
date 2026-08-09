@@ -196,7 +196,7 @@ def show_report(
             ),
             json_flag,
         )
-    except FileNotFoundError as err:
+    except FileNotFoundError:
         fail(command, KahnError("ID_NOT_FOUND", "Report output not found.", context=str(mapping.get(section))), json_flag)
     if json_flag:
         finish(command, {"section": section, "content": content})

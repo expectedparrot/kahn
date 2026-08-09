@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import shutil
+import sys
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -21,6 +22,7 @@ from .models import (
 )
 
 T = TypeVar("T", bound=BaseModel)
+ENVELOPE_SCHEMA_VERSION = "2.0"
 
 PHASE_ORDER = [
     "forces",
@@ -55,8 +57,10 @@ def default_project_dir() -> Path:
 
 def make_json_envelope(command: str, data: Any, warnings: list[str] | None = None, next_steps: list[str] | None = None) -> dict[str, Any]:
     return {
+        "schema_version": ENVELOPE_SCHEMA_VERSION,
         "command": command,
         "status": "ok",
+        "argv": sys.argv[1:],
         "data": data,
         "warnings": warnings or [],
         "errors": [],
@@ -66,8 +70,10 @@ def make_json_envelope(command: str, data: Any, warnings: list[str] | None = Non
 
 def error_envelope(command: str, err: KahnError) -> dict[str, Any]:
     return {
+        "schema_version": ENVELOPE_SCHEMA_VERSION,
         "command": command,
         "status": "error",
+        "argv": sys.argv[1:],
         "data": {},
         "warnings": [],
         "errors": [

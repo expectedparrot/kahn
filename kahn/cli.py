@@ -4,9 +4,11 @@ import typer
 
 from .commands.docs import app as docs_app
 from .commands.force import app as force_app
-from .commands.init import app as init_app
+from .commands.guide import app as guide_app
 from .commands.ingest import app as ingest_app
+from .commands.init import app as init_app
 from .commands.job import app as job_app
+from .commands.next import app as next_app
 from .commands.option import app as option_app
 from .commands.phase import app as phase_app
 from .commands.report import app as report_app
@@ -19,6 +21,8 @@ from .commands.validate import app as validate_app
 app = typer.Typer(help="Strategic scenario planning CLI.")
 app.add_typer(init_app)
 app.add_typer(status_app)
+app.add_typer(guide_app)
+app.add_typer(next_app)
 app.add_typer(force_app, name="force")
 app.add_typer(uncertainty_app, name="uncertainty")
 app.add_typer(scenario_app, name="scenario")

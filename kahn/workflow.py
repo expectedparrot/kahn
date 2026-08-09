@@ -100,3 +100,39 @@ def phase_state(store) -> dict:
         "checklist": CHECKLISTS.get(phase, []),
         "recommended_next_steps": next_steps(phase),
     }
+
+
+def workflow_assessment(store) -> dict:
+    """Return the first incomplete workflow gate based on persisted artifacts."""
+    if not store.meta_path.exists():
+        return {"stage": "init", "ready": False, "reason": "No Kahn project exists.", "next_command": "kahn init --question '...' --domain '...' --horizon '...'", "guide": "kahn guide"}
+
+    meta = store.read_meta()
+    forces = store.list_forces()
+    trends = [force for force in forces if force.type == "trend"]
+    uncertainties = [force for force in forces if force.type == "uncertainty"]
+    critical = store.list_critical_uncertainties()
+    scenarios = store.list_scenarios()
+    options = store.list_options()
+    gates = [
+        (not forces, "forces", "No environmental forces have been recorded.", "kahn force add --help"),
+        (not trends, "forces", "At least one relatively predictable trend is required.", "kahn force add --help"),
+        (len(uncertainties) < 2, "forces", "At least two uncertain forces are required.", "kahn force add --help"),
+        ("forces" not in meta.phase_locks, "forces", "Review and lock the force set.", "kahn phase advance"),
+        (len(critical) != 2, "uncertainty_selection", "Select exactly two critical uncertainties.", "kahn uncertainty select --help"),
+        (any(not item.pole_a or not item.pole_b for item in critical), "uncertainty_selection", "Both critical uncertainties need poles.", "kahn uncertainty set-poles --help"),
+        ("Independence check run." not in (meta.notes or ""), "uncertainty_selection", "Run the independence check for the selected axes.", "kahn uncertainty check-independence"),
+        ("uncertainty_selection" not in meta.phase_locks, "uncertainty_selection", "Review and lock the selected axes.", "kahn phase advance"),
+        (len(scenarios) != 4, "scenario_construction", "Build the four-scenario matrix.", "kahn scenario build"),
+        (any(not item.name or not item.tagline for item in scenarios), "scenario_construction", "Every scenario needs a name and tagline.", "kahn scenario name --help"),
+        (any(not store.get_scenario_narrative(item.id).strip() for item in scenarios), "scenario_construction", "Every scenario needs a narrative.", "kahn job generate write-narrative --help"),
+        (any(not store.get_scenario_signals(item.id).signals for item in scenarios), "scenario_construction", "Every scenario needs early-warning signals.", "kahn scenario signals set --help"),
+        ("scenario_construction" not in meta.phase_locks, "scenario_construction", "Review and lock the scenario set.", "kahn phase advance"),
+        (not options, "option_evaluation", "Add at least one strategic option.", "kahn option add --help"),
+        (any(not (store.option_dir(item.id) / "performance.json").exists() for item in options), "option_evaluation", "Every option needs a cross-scenario evaluation.", "kahn job generate evaluate-options"),
+        (not (store.root / "output" / "summary.md").exists(), "reporting", "Generate the final report.", "kahn report generate"),
+    ]
+    for incomplete, stage, reason, command in gates:
+        if incomplete:
+            return {"stage": stage, "ready": False, "reason": reason, "next_command": command, "guide": "kahn guide"}
+    return {"stage": "complete", "ready": True, "reason": "All workflow artifacts are present.", "next_command": "kahn validate", "guide": "kahn guide"}

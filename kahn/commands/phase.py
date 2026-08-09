@@ -5,7 +5,7 @@ from pathlib import Path
 import typer
 
 from ..renderer import render_kv_panel
-from ..store import KahnError, PHASE_ORDER
+from ..store import PHASE_ORDER, KahnError
 from .common import HumanOption, ProjectDirOption, QuietOption, fail, finish, should_emit_json, store_for
 
 app = typer.Typer(help="Manage project phases.")

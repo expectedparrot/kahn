@@ -6,6 +6,7 @@ import typer
 
 from ..renderer import render_kv_panel
 from ..store import KahnError
+from ..workflow import workflow_assessment
 from .common import HumanOption, ProjectDirOption, QuietOption, fail, finish, should_emit_json, store_for
 
 app = typer.Typer(help="Project status.")
@@ -35,8 +36,9 @@ def status_command(
             "critical_uncertainties": len(cus),
             "scenarios": len(scenarios),
             "options": len(options),
-            "next_action": _next_action(meta.phase, meta.phase_locks, cus, scenarios, options),
+            "workflow": workflow_assessment(store),
         }
+        data["next_action"] = data["workflow"]["next_command"]
     except KahnError as err:
         fail(command, err, json_flag)
     if json_flag:

@@ -4,6 +4,11 @@ import re
 from importlib import resources
 
 DOCS: dict[str, dict] = {
+    "agent-workflow": {
+        "title": "Agent Workflow",
+        "summary": "Authoritative end-to-end operating contract for agents.",
+        "file": "agent-workflow.md",
+    },
     "overview": {
         "title": "Package Overview",
         "summary": "What kahn does and when to use it.",

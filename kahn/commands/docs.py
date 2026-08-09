@@ -4,7 +4,6 @@ import typer
 
 from ..docs import DOCS, load_doc, search_docs
 from ..renderer import console, render_markdown, table
-from ..store import KahnError
 from .common import HumanOption, finish, should_emit_json
 
 app = typer.Typer(help="Read built-in documentation.")
@@ -34,7 +33,7 @@ def docs_show(topic: str, human: bool = HumanOption) -> None:
         err = KahnError(
             "UNKNOWN_TOPIC",
             f"No doc '{topic}'.",
-            hint=f"Run `kahn docs list` to see available topics.",
+            hint="Run `kahn docs list` to see available topics.",
         )
         from .common import fail
 
