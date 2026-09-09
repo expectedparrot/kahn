@@ -19,6 +19,15 @@ kahn status --project-dir <path>
 
 This returns your operating rules, the current project state, and recommended next steps in a single JSON payload.
 
+Use `kahn next --project-dir PATH` for an executable action. Run its
+`data.action.argv` from `data.action.cwd`, adding the inputs declared by
+`data.action.input_schema` through their `flag` or `position` fields. Before
+initialization, `cwd` is the nearest existing ancestor of the requested project;
+the absolute `--project-dir` still targets the new project. `next` does not
+create directories. After initialization, actions run from the project itself.
+Prefer the argv array for execution; `data.next_command` is its shell-quoted
+display form and still needs any declared required inputs.
+
 ## Step 1: Initialize the Project
 
 ```bash

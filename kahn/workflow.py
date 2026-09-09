@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import shlex
+
 CHECKLISTS: dict[str, list[str]] = {
     "forces": [
         "Add 8-15 environmental forces spanning multiple PESTEL domains.",
@@ -105,6 +107,11 @@ def phase_state(store) -> dict:
 def workflow_assessment(store) -> dict:
     """Return the first incomplete workflow gate based on persisted artifacts."""
     project = store.root.resolve()
+    # `next` is read-only, including before init creates the project. Launch
+    # from its nearest existing directory while retaining the absolute target.
+    action_cwd = project
+    while not action_cwd.is_dir():
+        action_cwd = action_cwd.parent
 
     def action(
         label: str,
@@ -121,7 +128,7 @@ def workflow_assessment(store) -> dict:
         return {
             "label": label,
             "argv": argv,
-            "cwd": str(project),
+            "cwd": str(action_cwd),
             "project_dir": str(project),
             "input_schema": input_schema or {},
             "mutates_state": mutates,
@@ -138,7 +145,7 @@ def workflow_assessment(store) -> dict:
             "ready": ready,
             "reason": reason,
             "action": selected,
-            "next_command": " ".join(selected["argv"]),
+            "next_command": shlex.join(selected["argv"]),
             "guide": "kahn guide",
         }
 
