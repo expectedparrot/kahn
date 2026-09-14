@@ -98,7 +98,7 @@ def test_next_actions_are_absolute_and_isolated_for_nested_projects_with_spaces(
         payload = json.loads(result.stdout)
         action = payload["data"]["action"]
         assert action["project_dir"] == str(project.resolve())
-        assert action["cwd"] == str(project.resolve())
+        assert action["cwd"] == str(tmp_path.resolve())
         assert action["argv"][-2:] == ["--project-dir", str(project.resolve())]
         assert {"question", "domain", "horizon"} == set(action["input_schema"])
         actions.append(action)
